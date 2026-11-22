@@ -1,0 +1,35 @@
+name: Authorized ZAP Baseline
+on:
+  workflow_dispatch:
+    inputs:
+      authorized:
+        description: 'I have permission to crawl the configured ZAP_TARGET'
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  baseline:
+    if: inputs.authorized && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Fixed repository variable, never accept an arbitrary untrusted target.
+      ZAP_TARGET: ${{ vars.ZAP_TARGET }}
+    steps:
+      - name: Validate HTTPS target without credentials
+        run: |
+          node -e 'const u = new URL(process.env.ZAP_TARGET); if (u.protocol !== "https:" || u.username || u.password || u.search || u.hash) process.exit(1)'
+      - name: Baseline (passive rules, one-minute crawl)
+        run: |
+          mkdir -p reports
+          chmod 777 reports
+          docker run --rm -v "$PWD/reports:/zap/wrk:rw" ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t "$ZAP_TARGET" -m 1 -T 3 -r zap.html -J zap.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-baseline
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 7
