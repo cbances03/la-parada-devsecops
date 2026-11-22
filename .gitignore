@@ -39,3 +39,14 @@ Thumbs.db
 
 .vercel
 .env*
+
+# Exam inputs, local archives and temporary editor files
+*.docx
+*.zip
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+~$*
+.vitest-attachments/
